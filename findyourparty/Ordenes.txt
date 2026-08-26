@@ -1,0 +1,468 @@
+Quiero que actúes como un Arquitecto Senior Full Stack especializado en:
+
+- React
+- Vite
+- TailwindCSS
+- Supabase
+- UX/UI
+- SaaS
+- Arquitectura limpia
+- Escalabilidad
+- Optimización
+
+Tu objetivo NO es solamente programar.
+
+Tu objetivo es rediseñar completamente mi proyecto para convertirlo en una plataforma profesional de venta de entradas para eventos llamada FindYourParty.
+
+=========================================================
+REGLAS GENERALES
+=========================================================
+
+Antes de escribir una sola línea de código debes:
+
+1. Analizar completamente el proyecto.
+2. Comprender cómo funciona.
+3. Detectar errores.
+4. Detectar malas prácticas.
+5. Detectar código duplicado.
+6. Detectar componentes demasiado grandes.
+7. Detectar problemas de arquitectura.
+8. Detectar problemas de rendimiento.
+9. Detectar problemas de Supabase.
+10. Entender completamente el flujo de la aplicación.
+
+No quiero cambios improvisados.
+
+Todo debe seguir una arquitectura profesional.
+
+=========================================================
+OBJETIVO DEL PROYECTO
+=========================================================
+
+FindYourParty será una plataforma moderna para descubrir y reservar entradas para eventos nocturnos.
+
+Los clientes NO crearán cuenta.
+
+La página servirá como catálogo profesional de eventos.
+
+La compra NO se realiza dentro de la web.
+
+Toda la compra continúa por WhatsApp.
+
+La página únicamente presenta el evento de forma atractiva y genera confianza para aumentar las conversiones.
+
+=========================================================
+FLUJO DEL USUARIO
+=========================================================
+
+Usuario entra.
+
+↓
+
+Ve eventos destacados.
+
+↓
+
+Explora categorías.
+
+↓
+
+Entra a la página del evento.
+
+↓
+
+Ve toda la información.
+
+↓
+
+Selecciona el tipo de entrada.
+
+↓
+
+Presiona Comprar.
+
+↓
+
+Se abre WhatsApp con el organizador.
+
+↓
+
+La venta continúa por WhatsApp.
+
+↓
+
+El organizador envía el QR por WhatsApp.
+
+=========================================================
+TIPOS DE ENTRADAS
+=========================================================
+
+Cada evento puede tener múltiples tipos de entradas.
+
+Ejemplo:
+
+General
+
+VIP
+
+Box
+
+Backstage
+
+Mesa
+
+Zona Lounge
+
+También puede existir:
+
+Preventa 1
+
+Preventa 2
+
+Preventa 3
+
+General
+
+Últimas entradas
+
+Cada una con:
+
+precio
+
+cantidad
+
+descripción
+
+color
+
+agotado
+
+orden
+
+No utilizar un solo campo "price".
+
+Crear una estructura preparada para múltiples entradas.
+
+=========================================================
+PÁGINA DEL EVENTO
+=========================================================
+
+Cada evento debe tener su propia landing page.
+
+Debe sentirse como una página exclusiva.
+
+Debe incluir:
+
+Hero
+
+Galería
+
+Video
+
+Descripción
+
+Mapa
+
+Line Up
+
+Dresscode
+
+Horario
+
+Ubicación
+
+Organizador
+
+Tipos de entrada
+
+Preguntas frecuentes
+
+Countdown
+
+Eventos relacionados
+
+Botón Comprar por WhatsApp
+
+=========================================================
+ORGANIZADORES
+=========================================================
+
+Cada organizador tendrá:
+
+Logo
+
+Banner
+
+Descripción
+
+Redes sociales
+
+Eventos realizados
+
+Eventos futuros
+
+Seguidores
+
+Calificación
+
+Galería
+
+=========================================================
+HOME
+=========================================================
+
+La Home debe ser completamente moderna.
+
+Inspiración:
+
+Eventbrite
+
+Joinnus
+
+Dice
+
+Resident Advisor
+
+Shotgun
+
+Pero manteniendo una identidad propia.
+
+Debe tener:
+
+Hero
+
+Buscador
+
+Eventos destacados
+
+Eventos próximos
+
+Categorías
+
+Organizadores destacados
+
+Ciudades
+
+Recuerdos de eventos
+
+Footer profesional
+
+=========================================================
+RECUERDOS DE EVENTOS
+=========================================================
+
+Crear una sección llamada:
+
+Recuerdos de Eventos
+
+Aquí los usuarios podrán ver:
+
+Fotos
+
+Videos
+
+Comentarios
+
+Calificaciones
+
+Historias
+
+Experiencias
+
+Esto reemplaza un sistema de comentarios tradicional.
+
+=========================================================
+COMPRA
+=========================================================
+
+NO EXISTIRÁ PASARELA DE PAGO.
+
+NO EXISTIRÁ CHECKOUT.
+
+NO EXISTIRÁ CARRITO.
+
+Todo termina en WhatsApp.
+
+=========================================================
+QR
+=========================================================
+
+El QR será generado y enviado manualmente por el organizador mediante WhatsApp.
+
+La plataforma solamente debe quedar preparada para una futura automatización.
+
+=========================================================
+ADMIN
+=========================================================
+
+El Admin debe parecer un SaaS moderno.
+
+Inspiración:
+
+Stripe
+
+Linear
+
+Notion
+
+Vercel
+
+Debe tener:
+
+Dashboard
+
+Sidebar
+
+Estadísticas
+
+Calendario
+
+Gráficos
+
+Eventos
+
+Reservas
+
+Organizadores
+
+Actividad reciente
+
+Acciones rápidas
+
+=========================================================
+SUPABASE
+=========================================================
+
+Toda la lógica de Supabase debe vivir en Services.
+
+Nunca directamente en componentes.
+
+Crear:
+
+eventService
+
+reservationService
+
+organizerService
+
+storageService
+
+supabaseService
+
+=========================================================
+ARQUITECTURA
+=========================================================
+
+Quiero una arquitectura limpia.
+
+Separar:
+
+components
+
+pages
+
+dashboard
+
+layouts
+
+services
+
+hooks
+
+utils
+
+constants
+
+types
+
+context
+
+=========================================================
+OBJETIVO VISUAL
+=========================================================
+
+Quiero que la plataforma transmita:
+
+Premium
+
+Juvenil
+
+Nocturna
+
+Elegante
+
+Tecnológica
+
+Oscura
+
+Moderna
+
+Con mucho uso de:
+
+Glassmorphism
+
+Blur
+
+Gradientes
+
+Animaciones suaves
+
+Cards premium
+
+=========================================================
+OPTIMIZACIÓN
+=========================================================
+
+No quiero componentes enormes.
+
+Si un archivo supera aproximadamente 300 líneas:
+
+Divídelo.
+
+Eliminar código duplicado.
+
+Optimizar renders.
+
+Usar Lazy Loading.
+
+Mantener buenas prácticas.
+
+=========================================================
+METODOLOGÍA
+=========================================================
+
+NO hagas toda la refactorización de una sola vez.
+
+Trabaja por olas.
+
+Al finalizar cada ola debes:
+
+Verificar que compile.
+
+Verificar que no existan errores.
+
+Verificar que no existan warnings.
+
+Verificar que no se rompieron funcionalidades.
+
+Entregar un informe indicando:
+
+Archivos creados.
+
+Archivos modificados.
+
+Cambios realizados.
+
+Mejoras.
+
+Pendientes.
+
+No continúes automáticamente a la siguiente ola hasta que la actual esté completamente funcional.
+
+=========================================================
+OBJETIVO FINAL
+=========================================================
+
+Quiero que FindYourParty tenga la calidad suficiente para competir visual y técnicamente con plataformas como Eventbrite, Joinnus, Dice y Shotgun, pero manteniendo una identidad propia enfocada en la vida nocturna y eventos en Perú.
+
+La plataforma debe ser escalable, mantenible y preparada para futuras funciones como aplicación móvil, inteligencia artificial, pagos en línea y generación automática de QR.
