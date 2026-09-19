@@ -1,40 +1,51 @@
-import { useContext, useState } from "react"
+import { useContext, useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { EventContext } from "../context/EventContext"
-import EventCard from "../components/EventCard" // Assuming EventCard is the component for individual events
-import Navbar from "../components/Navbar" // Import Navbar component
+import EventCard from "../components/EventCard"
+import Navbar from "../components/Navbar"
 import { getMinActivePrice, parseNewPricesJsonString } from "../utils/priceUtils"
 
 export default function Home() {
   const { events = [] } = useContext(EventContext) || {}
 
-  const activeEvents = (events || []).filter((event) => {
-    if (!event) return false
-    const status = event.lifecycleStatus ? event.lifecycleStatus.toLowerCase() : "activo";
-    // Filter by publication_status
-    // Solo mostrar eventos publicados y activos
-    return ["activo", "active", "periodo_de_gracia", "grace"].includes(status) &&
-           event.publication_status === 'published';
+  useEffect(() => {
+    console.log("🔍 DEBUG EN HOME - Total eventos recibidos:", events)
+  }, [events])
 
-  })
-
+  const activeEvents = Array.isArray(events) ? events : []
   const featuredEvent = activeEvents.find((event) => event.featured) || activeEvents[0]
 
   const [selectedCategory, setSelectedCategory] = useState("Todos")
 
-  const filteredEvents = activeEvents.filter((event) =>
-    selectedCategory === "Todos" || event.category === selectedCategory
-  )
+  const filteredEvents = activeEvents.filter((event) => {
+    if (selectedCategory === "Todos") return true
+    const cat = (event.category || event.genre || "").toLowerCase()
+    return cat.includes(selectedCategory.toLowerCase())
+  })
 
-  // Determine grid classes based on the number of filtered events
-  let gridClasses = "grid gap-8";
+  let gridClasses = "grid gap-8"
   if (filteredEvents.length === 1) {
-    gridClasses += " grid-cols-1 max-w-md mx-auto"; // Center single card
+    gridClasses += " grid-cols-1 max-w-md mx-auto"
   } else if (filteredEvents.length === 2) {
-    gridClasses += " grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto"; // Center two cards
+    gridClasses += " grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto"
   } else {
-    gridClasses += " grid-cols-1 md:grid-cols-2 lg:grid-cols-3"; // Default grid for 3 or more
+    gridClasses += " grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
   }
+
+  const getMinPriceDisplay = (event) => {
+    if (!event) return "0"
+    try {
+      const parsed = parseNewPricesJsonString(event.prices_json)
+      const min = getMinActivePrice(parsed)
+      return min || event.price || "0"
+    } catch {
+      return event.price || "0"
+    }
+  }
+
+  // Posición y escala configurados visualmente
+  const heroImagePosition = featuredEvent?.banner_position || "50% 20%"
+  const heroImageZoom = featuredEvent?.banner_zoom || 1
 
   return (
     <div className="bg-black text-white min-h-screen font-sans selection:bg-purple-500 selection:text-white">
@@ -45,7 +56,12 @@ export default function Home() {
         <img
           src={featuredEvent?.image || "/FYP_banner_default.png"}
           alt={featuredEvent?.title || "Find Your Party"}
-          className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-screen"
+          style={{
+            objectPosition: heroImagePosition,
+            transform: `scale(${heroImageZoom})`,
+            transformOrigin: heroImagePosition
+          }}
+          className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-screen transition-all duration-700 pointer-events-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
@@ -64,18 +80,18 @@ export default function Home() {
                 📍 {featuredEvent.location} • 📅 {featuredEvent.date}
               </p>
               <p className="text-cyan-400 font-black text-3xl mt-4 tracking-tight">
-                Desde S/{getMinActivePrice(parseNewPricesJsonString(featuredEvent.prices_json))}
+                Desde S/{getMinPriceDisplay(featuredEvent)}
               </p>
             </div>
           ) : (
             <p className="text-zinc-400 text-lg md:text-xl max-w-xl mt-6 font-medium">
-              Próximamente. Estamos preparando las mejores experiences nocturnas de Lima. ¡Atento a la cartelera!
+              Próximamente. Estamos preparando las mejores experiencias nocturnas de Lima. ¡Atento a la cartelera!
             </p>
           )}
           <div className="mt-10 flex gap-4">
             {featuredEvent ? (
               <Link
-                to={`/evento/${featuredEvent.slug}`} // Usar slug para el enlace
+                to={`/evento/${featuredEvent.slug || featuredEvent.id}`}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black px-8 py-4 rounded-2xl hover:opacity-90 transition tracking-wide uppercase text-xs"
               >
                 Ver Zonas y Precios
@@ -92,7 +108,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Eventos Section */}
+      {/* Cartelera Section */}
       <section id="eventos" className="max-w-7xl mx-auto px-6 py-24">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -119,14 +135,14 @@ export default function Home() {
         <div className={gridClasses}>
           {filteredEvents.length > 0 ? (
             filteredEvents.map((event) => (
-              <div className="transition-transform hover:scale-[1.01] block" key={event.id}> {/* Changed Link to div */}
+              <div className="transition-transform hover:scale-[1.01] block" key={event.id}>
                 <EventCard event={event} />
               </div>
             ))
           ) : (
             <div className="col-span-full text-center py-20 border border-dashed border-zinc-800 rounded-3xl bg-zinc-950/30">
               <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter text-zinc-400">Próximamente</h3>
-              <p className="text-zinc-600 text-sm">No hay juergas programadas en esta categoría por ahora.</p>
+              <p className="text-zinc-500 text-sm">No hay juergas programadas en esta categoría por ahora.</p>
             </div>
           )}
         </div>
