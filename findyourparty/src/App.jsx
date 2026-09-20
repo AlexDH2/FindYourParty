@@ -1,29 +1,39 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
-import Home from "./pages/Home"
-import EventDetails from "./pages/EventDetails"
-import Admin from "./pages/Admin"
-import PublicLayout from "./layouts/PublicLayout"
-import Login from "./pages/Login" // Importar Login
-import DashboardLayout from "./layouts/DashboardLayout"
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-function App() {
+// Layouts
+import PublicLayout from './layouts/PublicLayout';
+import DashboardLayout from './layouts/DashboardLayout';
+
+// Páginas
+import Home from './pages/Home';
+import EventDetails from './pages/EventDetails';
+import Reservations from './pages/Reservations';
+import Admin from './pages/Admin';
+import Login from './pages/Login';
+
+export default function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* 1. Rutas Públicas */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/evento/:slug" element={<EventDetails />} /> {/* Cambiado a slug */}
+          <Route path="/evento/:id" element={<EventDetails />} />
+          <Route path="/reservas" element={<Reservations />} />
         </Route>
 
-        {/* Admin Routes */}
+        {/* 2. Login Independiente (Pantalla completa sin barra lateral) */}
+        <Route path="/login" element={<Login />} />
+
+        {/* 3. Panel de Administración (Con la barra lateral del Dashboard) */}
         <Route element={<DashboardLayout />}>
-          <Route path="/login" element={<Login />} /> {/* Mover Login aquí si es parte del dashboard layout o dejarlo fuera si es independiente */}
           <Route path="/admin" element={<Admin />} />
         </Route>
-      </Routes>
-    </Router>
-  )
-}
 
-export default App
+        {/* 4. Redirección por defecto */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

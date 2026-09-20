@@ -13,11 +13,34 @@ import TicketManager from "../components/admin/TicketManager"
 import AdminEventsList from "../components/admin/AdminEventsList"
 import AdminReservations from "../components/admin/AdminReservations"
 import BannerCropperModal from "../components/admin/BannerCropperModal"
+import PartyDatePicker from "../components/admin/PartyDatePicker"
 
 // Nuevas Vistas Modulares
 import AdminDashboardView from "../components/admin/AdminDashboardView"
 import AdminOrganizersView from "../components/admin/AdminOrganizersView"
 import AdminReservationsView from "../components/admin/AdminReservationsView"
+
+// Función auxiliar para autocompletar números de WhatsApp a formato wa.me
+function formatWhatsAppLink(val) {
+  if (!val) return null
+  const trimmed = String(val).trim()
+  if (!trimmed) return null
+
+  // Si ya es un enlace completo, se conserva intacto
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed
+  }
+
+  // Extrae solo los dígitos
+  let clean = trimmed.replace(/\D/g, "")
+
+  // Si es un celular peruano de 9 dígitos, antepone el código de país 51
+  if (clean.length === 9 && clean.startsWith("9")) {
+    clean = `51${clean}`
+  }
+
+  return clean ? `https://wa.me/${clean}` : null
+}
 
 export default function Admin() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,6 +49,8 @@ export default function Admin() {
   const { events = [], reservations = [], addEvent, deleteEvent, updateEvent } = useContext(EventContext) || {}
   const { history, refetchHistory } = useReservationsHistory()
 
+  // Jerarquía: 'superadmin' o 'admin'
+  const [userRole, setUserRole] = useState("superadmin")
   const [organizers, setOrganizers] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [search, setSearch] = useState("")
@@ -33,6 +58,7 @@ export default function Admin() {
   const [showAdminModal, setShowAdminModal] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState("")
   const [newAdminPassword, setNewAdminPassword] = useState("")
+  const [newAdminRole, setNewAdminRole] = useState("admin")
   const [showCropper, setShowCropper] = useState(false)
 
   const [ticketTypes, setTicketTypes] = useState([])
@@ -58,6 +84,19 @@ export default function Admin() {
     min_age: "+18"
   }
   const [formData, setFormData] = useState(initialFormState)
+
+  // Obtener rol del usuario conectado
+  useEffect(() => {
+    async function fetchRole() {
+      try {
+        const role = await authService.getCurrentUserRole()
+        if (role) setUserRole(role)
+      } catch (e) {
+        console.error("Error cargando rol:", e)
+      }
+    }
+    void fetchRole()
+  }, [])
 
   const loadOrganizers = useCallback(async () => {
     try {
@@ -130,7 +169,7 @@ export default function Admin() {
         banner_position: formData.banner_position || "50% 20%",
         banner_zoom: Number(formData.banner_zoom) || 1,
         maps: formData.maps ? formData.maps.trim() : null,
-        whatsapp: formData.whatsapp ? formData.whatsapp.trim() : null,
+        whatsapp: formatWhatsAppLink(formData.whatsapp),
         description: formData.description ? formData.description.trim() : "",
         organizer_id: formData.organizer_id ? formData.organizer_id : null,
         publication_status: formData.publication_status || "published",
@@ -164,10 +203,11 @@ export default function Admin() {
   async function handleRegisterAdmin(e) {
     e.preventDefault()
     try {
-      await authService.registerAdmin(newAdminEmail, newAdminPassword)
-      alert("Administrador creado exitosamente.")
+      await authService.registerAdmin(newAdminEmail, newAdminPassword, newAdminRole)
+      alert(`Usuario registrado exitosamente con rol: ${newAdminRole.toUpperCase()}`)
       setNewAdminEmail("")
       setNewAdminPassword("")
+      setNewAdminRole("admin")
       setShowAdminModal(false)
     } catch (err) {
       alert(`Error: ${err.message}`)
@@ -175,6 +215,7 @@ export default function Admin() {
   }
 
   const currentCoverImage = galleryImages.find(i => i.label === "Portada")?.url || galleryImages[0]?.url || formData.image
+  const isSuperAdmin = userRole === "superadmin"
 
   return (
     <div className="space-y-6">
@@ -208,38 +249,63 @@ export default function Admin() {
           {/* Barra superior de acciones */}
           <div className="flex justify-between items-center mb-6 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-850">
             <div>
-              <h2 className="text-xl font-[1000] tracking-tight uppercase">
-                FYP <span className="text-pink-500">PANEL</span>
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-[1000] tracking-tight uppercase">
+                  FYP <span className="text-pink-500">PANEL</span>
+                </h2>
+                <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                  isSuperAdmin
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                    : "bg-lime-500/20 text-lime-400 border-lime-500/30"
+                }`}>
+                  {isSuperAdmin ? "👑 SuperAdmin" : "🛡️ Admin"}
+                </span>
+              </div>
               <p className="text-xs text-zinc-500">Gestión y Publicación de Fiestas</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdminModal(!showAdminModal)}
-                className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase"
-              >
-                🛡️ Admin Users
-              </button>
+              {isSuperAdmin && (
+                <button
+                  onClick={() => setShowAdminModal(!showAdminModal)}
+                  className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase hover:border-purple-500/50 transition-colors cursor-pointer"
+                >
+                  🛡️ Admin Users
+                </button>
+              )}
               <button
                 onClick={async () => { await authService.logout(); window.location.href = "/login"; }}
-                className="bg-zinc-950 border border-zinc-800 text-red-400 px-4 py-2 rounded-xl text-xs font-bold uppercase"
+                className="bg-zinc-950 border border-zinc-800 text-red-400 px-4 py-2 rounded-xl text-xs font-bold uppercase hover:bg-red-950/30 transition-colors cursor-pointer"
               >
                 Cerrar Sesión
               </button>
             </div>
           </div>
 
-          {showAdminModal && (
-            <form onSubmit={handleRegisterAdmin} className="mb-6 p-6 bg-zinc-900/90 border border-purple-500/30 rounded-3xl grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          {/* Modal para Crear Administrador (Solo visible para SuperAdmin) */}
+          {showAdminModal && isSuperAdmin && (
+            <form onSubmit={handleRegisterAdmin} className="mb-6 p-6 bg-zinc-900/90 border border-purple-500/30 rounded-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <div>
                 <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Email</label>
-                <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} required className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none" />
+                <input type="email" value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} required placeholder="admin@findyourparty.com" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-pink-500" />
               </div>
               <div>
                 <label className="text-[10px] font-black text-zinc-400 uppercase block mb-1">Contraseña</label>
-                <input type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} required className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none" />
+                <input type="password" value={newAdminPassword} onChange={e => setNewAdminPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-pink-500" />
               </div>
-              <button type="submit" className="bg-purple-600 text-white font-black text-xs uppercase py-3 rounded-xl">+ Crear Admin</button>
+              <div>
+                <label className="text-[10px] font-black text-purple-400 uppercase block mb-1">Rol a Asignar</label>
+                <select
+                  value={newAdminRole}
+                  onChange={e => setNewAdminRole(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="admin">Admin (Gestión Eventos y Reservas)</option>
+                  <option value="superadmin">SuperAdmin (Control Total)</option>
+                </select>
+              </div>
+              <button type="submit" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black text-xs uppercase py-3 rounded-xl shadow-lg shadow-pink-500/20 hover:opacity-90 transition-all cursor-pointer">
+                + Crear Usuario
+              </button>
             </form>
           )}
 
@@ -274,9 +340,15 @@ export default function Admin() {
                     <label className="text-[10px] font-black text-purple-400 uppercase block mb-1">Nombre</label>
                     <input type="text" name="title" value={formData.title} onChange={handleChange} required placeholder="Ej. LA SECTA" className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm font-bold text-white outline-none" />
                   </div>
+                  
+                  {/* Selector de Fecha Mejorado (PartyDatePicker con Scroll de Rueda) */}
                   <div>
                     <label className="text-[10px] font-black text-purple-400 uppercase block mb-1">Fecha</label>
-                    <input type="date" name="date" value={formData.date} onChange={handleChange} required className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm text-white outline-none [color-scheme:dark]" />
+                    <PartyDatePicker
+                      value={formData.date}
+                      onChange={(val) => setFormData(prev => ({ ...prev, date: val }))}
+                      placeholder="Seleccionar fecha"
+                    />
                   </div>
                 </div>
 
@@ -291,7 +363,20 @@ export default function Admin() {
                   <input type="text" name="location" value={formData.location} onChange={handleChange} required placeholder="Discoteca o Local" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-white outline-none" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <input type="url" name="maps" value={formData.maps} onChange={handleChange} placeholder="Google Maps URL" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2 text-xs text-white outline-none" />
-                    <input type="url" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="WhatsApp URL" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2 text-xs text-white outline-none" />
+                    <input
+                      type="text"
+                      name="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={handleChange}
+                      onBlur={(e) => {
+                        if (e.target.value) {
+                          const formatted = formatWhatsAppLink(e.target.value)
+                          if (formatted) setFormData(prev => ({ ...prev, whatsapp: formatted }))
+                        }
+                      }}
+                      placeholder="WhatsApp (ej: 941183428)"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2 text-xs text-white outline-none"
+                    />
                   </div>
                 </div>
 
@@ -348,14 +433,20 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <button type="submit" disabled={isSubmitting} className="w-full font-black uppercase tracking-widest p-4 rounded-2xl text-sm bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 text-black">
+                <button type="submit" disabled={isSubmitting} className="w-full font-black uppercase tracking-widest p-4 rounded-2xl text-sm bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 text-black cursor-pointer">
                   {isSubmitting ? "Guardando..." : editingId ? "💾 Actualizar Evento" : "🚀 Publicar Evento Line-Up"}
                 </button>
               </form>
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-              <AdminEventsList events={events} search={search} setSearch={setSearch} onEdit={handleEdit} onDelete={deleteEvent} />
+              <AdminEventsList
+                events={events}
+                search={search}
+                setSearch={setSearch}
+                onEdit={handleEdit}
+                onDelete={isSuperAdmin ? deleteEvent : () => alert("Solo el SuperAdmin tiene permisos para eliminar eventos.")}
+              />
               <AdminReservations reservations={reservations} history={history} refetchHistory={refetchHistory} />
             </div>
           </div>
