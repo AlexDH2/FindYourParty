@@ -1,14 +1,15 @@
 // Re-exportamos EventContext desde su archivo dedicado para que el resto de la
 // app siga importándolo desde "./EventContext" sin enterarse del split interno
 // (cumple la regla react-refresh/only-export-components).
-import { useEffect, useState, useCallback } from "react" // Removido useRef
+import { useEffect, useState, useCallback } from "react"
 
 import { eventService } from "../services/eventService"
 import { reservationService } from "../services/reservationService"
 import { slugify } from "../utils/slugify"
 import { parseNewPricesJsonString, getMinActivePrice } from "../utils/priceUtils"
 import { EventContext } from "./eventContextValue"
-import { REFRESH_INTERVAL_MS } from "../constants" // Importar la constante
+import { queryClient } from "../queryClient"
+import { cacheService } from "../services/cacheService"
 
 export { EventContext }
 
@@ -45,21 +46,21 @@ export function EventProvider({ children }) {
     } catch (error) {
       console.error("Error al cargar eventos:", error)
     }
-  }, [])
+  }, [enrichEventWithLifecycle])
 
   useEffect(() => {
-    // Carga inicial desde Supabase (sistema externo) y refresh periódico. El
-    // setState dentro del effect es legítimo para sincronizar con el backend.
+    // Carga inicial desde Supabase (sistema externo).
+    // Polling eliminado: TanStack Query maneja la caché y deduplicación
+    // para la página pública. El contexto solo sirve para datos de admin.
     void loadEvents()
     void loadReservations()
+  }, [loadEvents, loadReservations]);
 
-    const refreshInterval = setInterval(() => {
-      void loadEvents()
-      void loadReservations()
-    }, REFRESH_INTERVAL_MS)
-
-    return () => clearInterval(refreshInterval);
-  }, [loadEvents, loadReservations, enrichEventWithLifecycle]);
+  /** Invalida caché pública tras cambios en eventos */
+  function invalidatePublicCache() {
+    cacheService.clear()
+    queryClient.invalidateQueries({ queryKey: ["public-events"] })
+  }
 
   async function addEvent(newEvent) {
     // newEvent.prices_json now directly contains the new conceptual structure (array of ticketTypes)
@@ -93,6 +94,7 @@ export function EventProvider({ children }) {
 
       if (created) {
         setEvents((prev) => [created, ...prev])
+        invalidatePublicCache()
       }
     } catch (error) {
       console.error("Error al insertar evento en Supabase:", error)
@@ -103,6 +105,7 @@ export function EventProvider({ children }) {
     try {
       await eventService.deleteEvent(id)
       setEvents((prev) => prev.filter((event) => event.id !== id))
+      invalidatePublicCache()
     } catch (error) {
       console.error("Error al eliminar evento:", error)
     }
@@ -138,24 +141,27 @@ export function EventProvider({ children }) {
         setEvents((prev) => prev.map((e) =>
           e.id === updatedEvent.id ? { ...enrichEventWithLifecycle(updated), prices_json: parseNewPricesJsonString(updated.prices_json) } : e
         ));
+        invalidatePublicCache()
       }
     } catch (error) {
       console.error("Error al actualizar evento:", error)
     }
   }
 
-  async function createReservation(eventId, ticketType, ticketStage, unitPrice, quantity) {
+  async function createReservation(eventId, ticketType, ticketStage, quantity) {
     try {
-      await reservationService.createReservation({
+      // Usa RPC: no envía unit_price desde el cliente
+      const result = await reservationService.createReservation({
         event_id: eventId,
         ticket_type: ticketType,
-        ticket_stage: ticketStage, // New field
-        unit_price: unitPrice,     // New field
-        quantity: quantity
+        ticket_stage: ticketStage,
+        quantity: quantity,
       });
       await loadReservations()
+      return result // Devuelve {id, ticket_type, ticket_stage, unit_price, quantity, total}
     } catch (error) {
       console.error("Reservation error:", error)
+      throw error
     }
   }
 
@@ -174,6 +180,5 @@ export function EventProvider({ children }) {
     </EventContext.Provider>
   )
 }
-
 
 export default EventProvider

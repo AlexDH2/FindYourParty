@@ -1,9 +1,30 @@
+import { useState, useEffect } from "react"
+import { supabase } from "../../lib/supabase"
+
 export default function AdminDashboardView({ events = [], reservations = [], onNavigateToTab }) {
-  const activeEventsCount = events.length
+  const [dbStatus, setDbStatus] = useState("Conectando...")
+  const activeEventsCount = events.filter(e => e.publication_status === 'published').length
   const totalReservationsCount = reservations.reduce((acc, r) => acc + (Number(r?.quantity) || 0), 0)
 
-  // Estimación de ingresos base (promedio S/ 40 por ticket)
-  const estimatedRevenue = totalReservationsCount * 40
+  // Calcular ingresos reales: quantity * unit_price por cada reserva
+  const estimatedRevenue = reservations.reduce((acc, r) => {
+    const qty = Number(r?.quantity) || 0
+    const price = Number(r?.unit_price) || 0
+    return acc + (qty * price)
+  }, 0)
+
+  useEffect(() => {
+    async function checkDb() {
+      try {
+        const { error } = await supabase.from('events').select('id').limit(1)
+        if (error) throw error
+        setDbStatus("100% ONLINE")
+      } catch (err) {
+        setDbStatus("OFFLINE")
+      }
+    }
+    checkDb()
+  }, [])
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -25,15 +46,15 @@ export default function AdminDashboardView({ events = [], reservations = [], onN
         <div className="bg-zinc-950/80 border border-zinc-850 p-6 rounded-3xl space-y-2">
           <span className="text-xs font-black text-lime-400 uppercase tracking-widest">Recaudación Estimada</span>
           <p className="text-3xl font-[1000] text-lime-400 tracking-tight font-mono">S/. {estimatedRevenue.toLocaleString()}</p>
-          <p className="text-[10px] text-zinc-500 font-medium">Basado en tickets generados</p>
+          <p className="text-[10px] text-zinc-500 font-medium">Basado en quantity × unit_price</p>
         </div>
 
         <div className="bg-zinc-950/80 border border-zinc-850 p-6 rounded-3xl space-y-2">
           <span className="text-xs font-black text-cyan-400 uppercase tracking-widest">Estado del Sistema</span>
           <p className="text-2xl font-[1000] text-emerald-400 tracking-tight flex items-center gap-2">
-            ● 100% ONLINE
+            {dbStatus === "100% ONLINE" ? "● " : (dbStatus === "OFFLINE" ? "🔴 " : "🟡 ")}{dbStatus}
           </p>
-          <p className="text-[10px] text-zinc-500 font-medium">Conexión Supabase activa</p>
+          <p className="text-[10px] text-zinc-500 font-medium">Conexión Supabase</p>
         </div>
       </div>
 

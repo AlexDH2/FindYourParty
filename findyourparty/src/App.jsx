@@ -1,39 +1,52 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from "react"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import Home from "./pages/Home"
+import EventDetails from "./pages/EventDetails"
+import PublicLayout from "./layouts/PublicLayout"
+import DashboardLayout from "./layouts/DashboardLayout"
+import ProtectedRoute from "./routes/ProtectedRoute"
+import NotFound from "./pages/NotFound"
 
-// Layouts
-import PublicLayout from './layouts/PublicLayout';
-import DashboardLayout from './layouts/DashboardLayout';
+// Code Splitting: Solo descarga esto si entran a estas rutas
+const Admin = lazy(() => import("./pages/Admin"))
+const Login = lazy(() => import("./pages/Login"))
 
-// Páginas
-import Home from './pages/Home';
-import EventDetails from './pages/EventDetails';
-import Reservations from './pages/Reservations';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
+// Loader genérico mientras descarga el componente
+const PageLoader = () => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+  </div>
+)
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* 1. Rutas Públicas */}
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/evento/:id" element={<EventDetails />} />
-          <Route path="/reservas" element={<Reservations />} />
-        </Route>
+    <Router>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/evento/:slug" element={<EventDetails />} />
+            <Route path="/login" element={<Login />} />
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
 
-        {/* 2. Login Independiente (Pantalla completa sin barra lateral) */}
-        <Route path="/login" element={<Login />} />
-
-        {/* 3. Panel de Administración (Con la barra lateral del Dashboard) */}
-        <Route element={<DashboardLayout />}>
-          <Route path="/admin" element={<Admin />} />
-        </Route>
-
-        {/* 4. Redirección por defecto */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+          {/* Admin Routes (protegidas) */}
+          <Route element={<DashboardLayout />}>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Routes>
+      </Suspense>
+    </Router>
+  )
 }
+
+export default App

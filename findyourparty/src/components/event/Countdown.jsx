@@ -31,6 +31,18 @@ const Countdown = ({ targetDate }) => {
     return () => clearInterval(interval);
   }, [targetDate]);
 
+  if (timeLeft.days < 0 || (timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0)) {
+    return (
+      <div className="flex justify-center py-10">
+        <div className="text-center group">
+          <span className="text-2xl md:text-3xl font-[1000] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 font-mono">
+            🎉 ¡El evento ya comenzó!
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-4 md:gap-8 justify-center py-10">
       {[

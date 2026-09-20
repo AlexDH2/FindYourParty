@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 
 function Navbar() {
   const [scrolled, setScrolled] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
     function handleScroll() {
@@ -46,17 +47,35 @@ function Navbar() {
             <a href="#eventos" className="hover:text-purple-400 transition font-medium">
               Eventos
             </a>
-            <a href="#servicios" className="hover:text-purple-400 transition font-medium">
-              Servicios
-            </a>
-            <a href="#galeria" className="hover:text-purple-400 transition font-medium">
-              Galería
-            </a>
             <a href="#contacto" className="hover:text-purple-400 transition font-medium">
               Contacto
             </a>
           </div>
+
+          <button 
+            className="md:hidden text-white hover:text-purple-400"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
+        
+        {isMenuOpen && (
+          <div className="md:hidden mt-4 bg-black/90 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-col gap-6 text-sm uppercase tracking-widest text-center">
+            <a href="#eventos" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
+              Eventos
+            </a>
+            <a href="#contacto" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
+              Contacto
+            </a>
+          </div>
+        )}
       </div>
     </nav>
   )

@@ -35,9 +35,14 @@ export default function AdminReservations({ reservations, history, refetchHistor
               <div key={res?.id} className="bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-850 flex justify-between items-center">
                 <div>
                   <p className="font-bold text-zinc-200">{res?.events?.title || "Evento"}</p>
-                  <p className="text-[9px] text-zinc-500">REF: {String(res?.id).substring(0, 8)}</p>
+                  <p className="text-[9px] text-zinc-500">
+                    REF: {String(res?.id).substring(0, 8)} • {res?.ticket_type || "Entrada"} {res?.ticket_stage ? `(${res?.ticket_stage})` : ""}
+                  </p>
                 </div>
-                <span className="text-lime-400 font-mono font-bold">x{res?.quantity || 0}</span>
+                <div className="text-right">
+                  <span className="text-lime-400 font-mono font-bold block">x{res?.quantity || 0}</span>
+                  <span className="text-[9px] text-zinc-400">Total: S/.{(Number(res?.quantity) || 0) * (Number(res?.unit_price) || 0)}</span>
+                </div>
               </div>
             ))
           )

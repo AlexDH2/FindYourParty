@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Si tienes supabase configurado en lib, descomenta la siguiente línea:
-// import { supabase } from '../lib/supabase'; 
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,38 +16,26 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      /* 
-        Si usas Supabase, activa este bloque:
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      */
-
-      console.log('Sesión iniciada correctamente:', email);
-
-      // Redirigir al panel de administración
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       navigate('/admin');
-
     } catch (err) {
-      console.error(err);
-      setErrorMessage(err.message || 'Error al iniciar sesión. Revisa tus credenciales.');
+      setErrorMessage(err.message || 'Credenciales de acceso incorrectas.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 min-h-screen w-screen bg-[#070709] flex items-center justify-center p-4 overflow-y-auto">
-      {/* Resplandor ambiental de fondo neón */}
-      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-pink-600/20 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-purple-600/20 rounded-full blur-[110px] pointer-events-none" />
+    <div className="min-h-[85vh] w-full flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Resplandor ambiental de fiesta/neón de fondo */}
+      <div className="absolute top-1/4 -left-20 w-72 h-72 bg-pink-600/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Tarjeta de Login */}
+      {/* Tarjeta principal de Login */}
       <div className="w-full max-w-md relative z-10 bg-[#0f0f14]/90 backdrop-blur-2xl border border-white/10 hover:border-pink-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] transition-all duration-300">
         
-        {/* Encabezado */}
+        {/* Encabezado e identidad FYP */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 mb-4 shadow-[0_0_15px_rgba(236,72,153,0.2)]">
             <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
@@ -65,9 +52,9 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Alerta de Error */}
+        {/* Mensaje de alerta en caso de error */}
         {errorMessage && (
-          <div className="mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs flex items-center gap-2.5">
+          <div className="mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs flex items-center gap-2.5 animate-fadeIn">
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -77,7 +64,7 @@ export default function Login() {
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Correo */}
+          {/* Input Correo */}
           <div>
             <label className="block text-[11px] font-semibold text-neutral-300 uppercase tracking-wider mb-2">
               Correo Electrónico
@@ -99,7 +86,7 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Contraseña */}
+          {/* Input Contraseña */}
           <div>
             <label className="block text-[11px] font-semibold text-neutral-300 uppercase tracking-wider mb-2">
               Contraseña
@@ -118,6 +105,7 @@ export default function Login() {
                 placeholder="••••••••"
                 className="w-full pl-11 pr-11 py-3 bg-neutral-900/90 text-white placeholder-neutral-500 text-sm rounded-xl border border-neutral-800 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 focus:outline-none transition-all duration-200"
               />
+              {/* Botón para alternar visibilidad de contraseña */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -149,7 +137,7 @@ export default function Login() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <span>Accediendo...</span>
+                <span>Verificando credenciales...</span>
               </>
             ) : (
               <>

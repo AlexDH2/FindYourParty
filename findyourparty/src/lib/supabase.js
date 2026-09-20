@@ -1,12 +1,10 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl =
-  "https://lphorwwsrcdaocfszalf.supabase.co"
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const supabaseKey =
-  "sb_publishable_nKua7H5TJJawvP97Qxzfag_un7PCA6E"
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Faltan las variables de entorno de Supabase (VITE_SUPABASE_URL o VITE_SUPABASE_PUBLISHABLE_KEY)");
+}
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseKey
-)
+export const supabase = createClient(supabaseUrl, supabaseKey);

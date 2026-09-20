@@ -1,4 +1,4 @@
-export default function AdminEventsList({ events, search, setSearch, onEdit, onDelete }) {
+export default function AdminEventsList({ events, search, setSearch, onEdit, onDelete, onDuplicate }) {
   const filtered = events.filter(e => e?.title?.toLowerCase().includes(search.toLowerCase()))
 
   return (
@@ -24,7 +24,7 @@ export default function AdminEventsList({ events, search, setSearch, onEdit, onD
           filtered.map((event) => (
             <div
               key={event.id}
-              className="bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center gap-3 hover:border-purple-500/40 transition-all"
+              className="bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800 flex justify-between items-center gap-3 hover:border-purple-500/40 transition-all flex-wrap sm:flex-nowrap"
             >
               <div className="flex items-center gap-3 min-w-0">
                 {event.image ? (
@@ -33,13 +33,33 @@ export default function AdminEventsList({ events, search, setSearch, onEdit, onD
                   <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-xs font-black text-zinc-600">FYP</div>
                 )}
                 <div className="min-w-0">
-                  <h4 className="font-extrabold text-sm text-zinc-100 truncate">{event.title}</h4>
+                  <h4 className="font-extrabold text-sm text-zinc-100 truncate flex items-center gap-1">
+                    {event.title}
+                    {event.publication_status === 'published' && <span title="Publicado">🟢</span>}
+                    {event.publication_status === 'draft' && <span title="Borrador">🟡</span>}
+                    {event.publication_status === 'hidden' && <span title="Oculto">⚫</span>}
+                  </h4>
                   <p className="text-[10px] text-zinc-400 truncate">📍 {event.location}</p>
                   <p className="text-[10px] text-purple-400 font-bold">📅 {event.date}</p>
                 </div>
               </div>
 
               <div className="flex gap-1.5 flex-shrink-0">
+                <a
+                  href={`/evento/${event.slug}?preview=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center justify-center"
+                  title="Vista Previa"
+                >
+                  👁️
+                </a>
+                <button
+                  onClick={() => onDuplicate && onDuplicate(event)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
+                >
+                  Duplicar
+                </button>
                 <button
                   onClick={() => onEdit(event)}
                   className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg"

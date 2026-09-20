@@ -49,6 +49,9 @@ export default function EventCard({ event }) {
   const { day, month, weekday } = formatCardDate(event.date)
   const destinationUrl = `/evento/${event.slug || event.id}`
   const coverImage = event.image || event.gallery_images?.[0]?.url || "/FYP_banner_default.png"
+  
+  // Decide badge text based on some logic or default to EN VENTA
+  const topBadgeText = "EN VENTA"
 
   return (
     <Link
@@ -60,6 +63,7 @@ export default function EventCard({ event }) {
         <img
           src={coverImage}
           alt={event.title}
+          loading="lazy"
           className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
         />
 
@@ -82,7 +86,7 @@ export default function EventCard({ event }) {
         {/* Badge de Estado / Categoría en la esquina superior derecha */}
         <div className="absolute top-4 right-4">
           <span className="bg-lime-400/20 backdrop-blur-md border border-lime-400/40 text-lime-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
-            🔥 {event.dresscode || "EN VENTA"}
+            🔥 {topBadgeText}
           </span>
         </div>
 
@@ -108,6 +112,11 @@ export default function EventCard({ event }) {
             <span className="bg-zinc-900/80 border border-zinc-800 text-[10px] font-bold text-zinc-400 px-2.5 py-1 rounded-lg">
               ⏰ {event.opening_time || "10:00 PM"}
             </span>
+            {event.dresscode && (
+              <span className="bg-zinc-900/80 border border-zinc-800 text-[10px] font-bold text-zinc-400 px-2.5 py-1 rounded-lg">
+                👗 {event.dresscode}
+              </span>
+            )}
           </div>
 
           {/* Fila inferior: Precio y Botón CTA */}

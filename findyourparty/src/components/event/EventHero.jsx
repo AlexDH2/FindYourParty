@@ -7,8 +7,8 @@ const EventHero = ({ event }) => {
       <motion.img
         initial={{ scale: 1.2 }}
         animate={{ scale: 1 }}
-        transition={{ duration: 10, repeat: Infinity, repeatType: "reverse" }}
-        src={event.image || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1200"}
+        transition={{ duration: 10, repeat: 1, repeatType: "reverse" }}
+        src={event.image || "/FYP_banner_default.png"}
         alt={event.title}
         className="absolute inset-0 w-full h-full object-cover brightness-[0.3]"
       />

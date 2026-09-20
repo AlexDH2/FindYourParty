@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { storageService } from "../../services/storageService"
+import { supabase } from "../../lib/supabase"
+import { compressImage } from "../../utils/imageCompression"
 
 export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, setFormData }) {
   const [isUploading, setIsUploading] = useState(false)
@@ -11,8 +13,15 @@ export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, 
     setIsUploading(true)
     try {
       const uploadPromises = files.map(async (file, index) => {
-        const fileName = `${Date.now()}-${index}-${file.name.replace(/\s+/g, "_")}`
-        await storageService.uploadImage({ bucket: "event-images", fileName, file })
+        // Detectar si es un mapa/croquis por nombre de archivo
+        const isMap = /mapa|dist|croquis|plano/i.test(file.name)
+
+        // Comprimir imagen antes de subir
+        const compressedFile = await compressImage(file, { isMap })
+
+        const ext = compressedFile.name.split(".").pop() || "webp"
+        const fileName = `${Date.now()}-${index}-${file.name.replace(/\.[^.]+$/, "").replace(/\s+/g, "_")}.${ext}`
+        await storageService.uploadImage({ bucket: "event-images", fileName, file: compressedFile })
         const publicUrl = storageService.getPublicUrl({ bucket: "event-images", fileName })
 
         let suggestedLabel = "Flyer"
@@ -22,7 +31,7 @@ export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, 
         else if (file.name.toLowerCase().includes("mesa")) suggestedLabel = "Mesas"
         else if (file.name.toLowerCase().includes("preventa")) suggestedLabel = "Precios"
 
-        return { url: publicUrl, label: suggestedLabel }
+        return { url: publicUrl, label: suggestedLabel, storagePath: fileName }
       })
 
       const uploaded = await Promise.all(uploadPromises)
@@ -44,7 +53,18 @@ export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, 
     }
   }
 
-  function removeImage(idx) {
+  async function removeImage(idx) {
+    const imageToRemove = galleryImages[idx]
+
+    // Intentar eliminar del Storage si tiene storagePath
+    if (imageToRemove?.storagePath) {
+      try {
+        await supabase.storage.from("event-images").remove([imageToRemove.storagePath])
+      } catch (err) {
+        console.warn("No se pudo eliminar imagen del storage:", err)
+      }
+    }
+
     const updated = galleryImages.filter((_, i) => i !== idx)
     setGalleryImages(updated)
     setFormData(prev => ({ ...prev, image: updated[0]?.url || "", gallery_images: updated }))
@@ -62,9 +82,9 @@ export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, 
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-sm font-black uppercase text-pink-400">📸 Galería de Flyers</h3>
-          <p className="text-[11px] text-zinc-500">Selecciona o arrastra todos tus flyers juntos</p>
+          <p className="text-[11px] text-zinc-500">Selecciona o arrastra todos tus flyers juntos (se comprimen a WebP automáticamente)</p>
         </div>
-        {isUploading && <span className="text-xs text-pink-400 font-bold animate-pulse">Subiendo...</span>}
+        {isUploading && <span className="text-xs text-pink-400 font-bold animate-pulse">Comprimiendo y subiendo...</span>}
       </div>
 
       <label className="border-2 border-dashed border-zinc-800 hover:border-pink-500/50 p-5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-zinc-950/60">
@@ -74,31 +94,32 @@ export default function FlyerGalleryUploader({ galleryImages, setGalleryImages, 
       </label>
 
       {galleryImages.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
           {galleryImages.map((img, idx) => (
-            <div key={idx} className="relative bg-zinc-950 rounded-xl border border-zinc-800 p-2">
-              <img src={img.url} alt="" className="w-full h-24 object-cover rounded-lg mb-2" />
-              <select
-                value={img.label}
-                onChange={(e) => updateLabel(idx, e.target.value)}
-                className="w-full bg-zinc-900 text-[10px] font-bold p-1 rounded border border-zinc-700 text-zinc-200 outline-none"
-              >
-                <option value="Portada">⭐ Portada</option>
-                <option value="Precios">🎟️ Precios / Preventa</option>
-                <option value="Mesas">🍾 Mesas / Boxes</option>
-                <option value="Croquis Zonas">🗺️ Croquis Zonas</option>
-                <option value="Ubicación">📍 Cómo Llegar</option>
-                <option value="Promo 4x3">🔥 Promo 4x3</option>
-                <option value="Estacionamiento">🚗 Estacionamiento</option>
-                <option value="Flyer">Otro</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => removeImage(idx)}
-                className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
-              >
-                ✕
-              </button>
+            <div key={idx} className="relative group rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950">
+              <img src={img.url} alt={img.label} className="w-full h-32 object-cover" />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1">
+                <select
+                  value={img.label}
+                  onChange={(e) => updateLabel(idx, e.target.value)}
+                  className="bg-zinc-900 border border-zinc-700 text-white text-[10px] rounded px-2 py-1"
+                >
+                  <option>Portada</option>
+                  <option>Flyer</option>
+                  <option>Croquis Zonas</option>
+                  <option>Estacionamiento</option>
+                  <option>Mesas</option>
+                  <option>Precios</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="text-red-400 text-[10px] font-bold hover:text-red-300"
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+              <span className="absolute bottom-1 left-1 bg-black/80 text-[9px] text-zinc-300 font-bold px-2 py-0.5 rounded-full">{img.label}</span>
             </div>
           ))}
         </div>
