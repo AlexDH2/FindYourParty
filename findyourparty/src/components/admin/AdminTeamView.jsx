@@ -13,7 +13,11 @@ export default function AdminTeamView({ currentProfile }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, role, permissions, updated_at');
+      .select('id, role, permissions');
+      
+    if (error) {
+      console.error("Error al cargar equipo:", error);
+    }
       
     // En una app real, también podríamos cruzar con auth.users para traer emails,
     // pero por seguridad de Supabase (auth.users no es accesible desde JS por defecto),

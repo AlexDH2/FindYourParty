@@ -28,7 +28,7 @@ export default function Admin() {
 
   const { events = [], reservations = [], addEvent, deleteEvent, updateEvent } = useContext(EventContext) || {}
   const { history, refetchHistory } = useReservationsHistory()
-  const { profile, canDeleteEvents } = useAdminProfile()
+  const { profile, canDeleteEvents, canManageTeam } = useAdminProfile()
 
   const [organizers, setOrganizers] = useState([])
   const [editingId, setEditingId] = useState(null)
@@ -292,12 +292,14 @@ export default function Admin() {
               <p className="text-xs text-zinc-500">Gestión y Publicación de Fiestas</p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowAdminModal(!showAdminModal)}
-                className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase"
-              >
-                🛡️ Admin Users
-              </button>
+              {canManageTeam && (
+                <button
+                  onClick={() => setShowAdminModal(!showAdminModal)}
+                  className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase"
+                >
+                  👤 Admin Users
+                </button>
+              )}
               <button
                 onClick={async () => { await authService.logout(); navigate("/login"); }}
                 className="bg-zinc-950 border border-zinc-800 text-red-400 px-4 py-2 rounded-xl text-xs font-bold uppercase"
