@@ -1,4 +1,4 @@
-export default function AdminEventsList({ events, search, setSearch, onEdit, onDelete, onDuplicate }) {
+export default function AdminEventsList({ events, search, setSearch, onEdit, onDelete, onDuplicate, canDeleteEvents }) {
   const filtered = events.filter(e => e?.title?.toLowerCase().includes(search.toLowerCase()))
 
   return (
@@ -66,14 +66,16 @@ export default function AdminEventsList({ events, search, setSearch, onEdit, onD
                 >
                   Editar
                 </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm("¿Seguro que deseas eliminar este evento?")) onDelete(event.id)
-                  }}
-                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
-                >
-                  Eliminar
-                </button>
+                {canDeleteEvents && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("¿Seguro que deseas eliminar este evento?")) onDelete(event.id)
+                    }}
+                    className="bg-red-950/40 hover:bg-red-900/60 text-red-400 text-[10px] font-bold px-2.5 py-1.5 rounded-lg"
+                  >
+                    Eliminar
+                  </button>
+                )}
               </div>
             </div>
           ))

@@ -18,6 +18,8 @@ import BannerCropperModal from "../components/admin/BannerCropperModal"
 import AdminDashboardView from "../components/admin/AdminDashboardView"
 import AdminOrganizersView from "../components/admin/AdminOrganizersView"
 import AdminReservationsView from "../components/admin/AdminReservationsView"
+import AdminTeamView from "../components/admin/AdminTeamView"
+import { useAdminProfile } from "../hooks/useAdminProfile"
 
 export default function Admin() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,6 +28,7 @@ export default function Admin() {
 
   const { events = [], reservations = [], addEvent, deleteEvent, updateEvent } = useContext(EventContext) || {}
   const { history, refetchHistory } = useReservationsHistory()
+  const { profile, canDeleteEvents } = useAdminProfile()
 
   const [organizers, setOrganizers] = useState([])
   const [editingId, setEditingId] = useState(null)
@@ -272,7 +275,12 @@ export default function Admin() {
         <AdminOrganizersView />
       )}
 
-      {/* 4. VISTA EVENTOS (CREADOR Y CARTELERAS) */}
+      {/* 4. VISTA EQUIPO */}
+      {currentTab === "equipo" && (
+        <AdminTeamView currentProfile={profile} />
+      )}
+
+      {/* 5. VISTA EVENTOS (CREADOR Y CARTELERAS) */}
       {currentTab === "eventos" && (
         <>
           {/* Barra superior de acciones */}
@@ -499,7 +507,7 @@ export default function Admin() {
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-              <AdminEventsList events={events} search={search} setSearch={setSearch} onEdit={handleEdit} onDelete={deleteEvent} onDuplicate={handleDuplicate} />
+              <AdminEventsList events={events} search={search} setSearch={setSearch} onEdit={handleEdit} onDelete={deleteEvent} onDuplicate={handleDuplicate} canDeleteEvents={canDeleteEvents} />
               <AdminReservations reservations={reservations} history={history} refetchHistory={refetchHistory} />
             </div>
           </div>

@@ -1,16 +1,21 @@
 import { Outlet, useSearchParams, useNavigate } from "react-router-dom"
+import { useAdminProfile } from "../hooks/useAdminProfile"
 
 export default function DashboardLayout() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const currentTab = searchParams.get("tab") || "eventos"
+  const { isSuperadmin, canManageOrganizers, canManageTeam } = useAdminProfile()
 
-  const navItems = [
+  const allNavItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
     { id: "eventos", label: "Eventos", icon: "🎟️" },
-    { id: "reservas", label: "Reservas", icon: "📱" },
-    { id: "organizadores", label: "Organizadores", icon: "👑" }
+    { id: "reservas", label: "Reservas", icon: "🧾" },
+    { id: "organizadores", label: "Organizadores", icon: "🏢", requiredPermission: canManageOrganizers },
+    { id: "equipo", label: "Equipo", icon: "👥", requiredPermission: canManageTeam }
   ]
+
+  const navItems = allNavItems.filter(item => item.requiredPermission !== false)
 
   const handleTabChange = (tabId) => {
     setSearchParams({ tab: tabId })
