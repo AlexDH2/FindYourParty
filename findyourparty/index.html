@@ -4,10 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/FYP.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FYP</title>
+    <title>🔥 FYP | Find Your Party 🎉</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      let previousTitle = document.title;
+      window.addEventListener('blur', () => {
+        previousTitle = document.title;
+        document.title = '👀 ¡Vuelve a la fiesta! 🥂';
+      });
+      window.addEventListener('focus', () => {
+        document.title = previousTitle;
+      });
+    </script>
   </body>
 </html>
