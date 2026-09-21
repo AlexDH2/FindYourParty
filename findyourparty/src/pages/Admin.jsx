@@ -5,6 +5,7 @@ import { authService } from "../services/authService"
 import { organizerService } from "../services/organizerService"
 import { useReservationsHistory } from "../hooks/useReservationsHistory"
 import { formatToYYYYMMDD } from "../utils/dateUtils"
+import { parseNewPricesJsonString } from "../utils/priceUtils"
 import { VENUE_PRESETS } from "../constants/eventPresets"
 
 // Componentes modulares
@@ -18,8 +19,6 @@ import BannerCropperModal from "../components/admin/BannerCropperModal"
 import AdminDashboardView from "../components/admin/AdminDashboardView"
 import AdminOrganizersView from "../components/admin/AdminOrganizersView"
 import AdminReservationsView from "../components/admin/AdminReservationsView"
-import AdminTeamView from "../components/admin/AdminTeamView"
-import { useAdminProfile } from "../hooks/useAdminProfile"
 
 export default function Admin() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,7 +27,6 @@ export default function Admin() {
 
   const { events = [], reservations = [], addEvent, deleteEvent, updateEvent } = useContext(EventContext) || {}
   const { history, refetchHistory } = useReservationsHistory()
-  const { profile, canDeleteEvents, canManageTeam } = useAdminProfile()
 
   const [organizers, setOrganizers] = useState([])
   const [editingId, setEditingId] = useState(null)
@@ -92,6 +90,7 @@ export default function Admin() {
   function handleEdit(event) {
     if (!event) return
     setEditingId(event.id)
+    setSearchParams({ tab: "nuevo-evento" })
     setFormData({
       title: event.title || "",
       location: event.location || "",
@@ -114,7 +113,7 @@ export default function Admin() {
       promo_expires_at: event.promo_expires_at ? new Date(event.promo_expires_at).toISOString().slice(0, 16) : ""
     })
 
-    setTicketTypes(Array.isArray(event.prices_json) ? event.prices_json : [])
+    setTicketTypes(parseNewPricesJsonString(event.prices_json))
     if (Array.isArray(event.gallery_images) && event.gallery_images.length > 0) {
       setGalleryImages(event.gallery_images)
     } else if (event.image) {
@@ -130,6 +129,7 @@ export default function Admin() {
   function handleDuplicate(event) {
     if (!event) return
     setEditingId(null)
+    setSearchParams({ tab: "nuevo-evento" })
     setFormData({
       title: `Copia de ${event.title || ""}`,
       location: event.location || "",
@@ -148,7 +148,7 @@ export default function Admin() {
       dresscode: event.dresscode || "Temático / Disfraces",
       min_age: event.min_age || "+18"
     })
-    setTicketTypes(Array.isArray(event.prices_json) ? event.prices_json : [])
+    setTicketTypes(parseNewPricesJsonString(event.prices_json))
     if (Array.isArray(event.gallery_images) && event.gallery_images.length > 0) {
       setGalleryImages(event.gallery_images)
     } else if (event.image) {
@@ -275,12 +275,7 @@ export default function Admin() {
         <AdminOrganizersView />
       )}
 
-      {/* 4. VISTA EQUIPO */}
-      {currentTab === "equipo" && (
-        <AdminTeamView currentProfile={profile} />
-      )}
-
-      {/* 5. VISTA EVENTOS (CREADOR Y CARTELERAS) */}
+      {/* 4. VISTA EVENTOS (CREADOR Y CARTELERAS) */}
       {currentTab === "eventos" && (
         <>
           {/* Barra superior de acciones */}
@@ -292,14 +287,12 @@ export default function Admin() {
               <p className="text-xs text-zinc-500">Gestión y Publicación de Fiestas</p>
             </div>
             <div className="flex gap-2">
-              {canManageTeam && (
-                <button
-                  onClick={() => setShowAdminModal(!showAdminModal)}
-                  className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase"
-                >
-                  👤 Admin Users
-                </button>
-              )}
+              <button
+                onClick={() => setShowAdminModal(!showAdminModal)}
+                className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-xl text-xs font-bold uppercase"
+              >
+                🛡️ Admin Users
+              </button>
               <button
                 onClick={async () => { await authService.logout(); navigate("/login"); }}
                 className="bg-zinc-950 border border-zinc-800 text-red-400 px-4 py-2 rounded-xl text-xs font-bold uppercase"
@@ -335,9 +328,17 @@ export default function Admin() {
             />
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-7">
-              <form onSubmit={handleSubmit} className="bg-zinc-950/70 p-6 md:p-8 rounded-[2.5rem] border border-zinc-850 space-y-6 shadow-2xl">
+          
+          <div className="max-w-4xl mx-auto space-y-6">
+            <AdminEventsList events={events} search={search} setSearch={setSearch} onEdit={handleEdit} onDelete={deleteEvent} onDuplicate={handleDuplicate} canDeleteEvents={canDeleteEvents} />
+          </div>
+        </>
+      )}
+
+      {/* VISTA NUEVO EVENTO (FORMULARIO) */}
+      {currentTab === "nuevo-evento" && (
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="bg-zinc-950/70 p-6 md:p-8 rounded-[2.5rem] border border-zinc-850 space-y-6 shadow-2xl">
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-[1000] tracking-tight">
                     {editingId ? <span className="text-amber-400">📝 EDITANDO EVENTO</span> : <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 bg-clip-text text-transparent">✨ PUBLICAR NUEVO EVENTO</span>}
@@ -506,16 +507,8 @@ export default function Admin() {
                   {isSubmitting ? "Guardando..." : editingId ? "💾 Actualizar Evento" : "🚀 Publicar Evento Line-Up"}
                 </button>
               </form>
-            </div>
-
-            <div className="lg:col-span-5 space-y-6">
-              <AdminEventsList events={events} search={search} setSearch={setSearch} onEdit={handleEdit} onDelete={deleteEvent} onDuplicate={handleDuplicate} canDeleteEvents={canDeleteEvents} />
-              <AdminReservations reservations={reservations} history={history} refetchHistory={refetchHistory} />
-            </div>
-          </div>
-        </>
+        </div>
       )}
-
     </div>
   )
 }

@@ -9,7 +9,8 @@ export default function DashboardLayout() {
 
   const allNavItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "eventos", label: "Eventos", icon: "🎟️" },
+    { id: "eventos", label: "Carteleras", icon: "📋" },
+    { id: "nuevo-evento", label: "Editor", icon: "📝" },
     { id: "reservas", label: "Reservas", icon: "🧾" },
     { id: "organizadores", label: "Organizadores", icon: "🏢", requiredPermission: canManageOrganizers },
     { id: "equipo", label: "Equipo", icon: "👥", requiredPermission: canManageTeam }

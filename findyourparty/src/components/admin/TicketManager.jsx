@@ -71,16 +71,36 @@ export default function TicketManager({
   }
 
   const handleStageChange = (ticketId, stageId, field, value) => {
-    setTicketTypes(
-      ticketTypes.map((t) =>
-        t.id === ticketId
-          ? {
-              ...t,
-              stages: t.stages.map((s) => (s.id === stageId ? { ...s, [field]: value } : s))
-            }
-          : t
-      )
-    )
+    setTicketTypes((prev) => {
+      // Si estamos cambiando una fecha, sincronizarla con todas las zonas en el mismo nivel/índice de etapa
+      const syncDates = field === "start_date" || field === "end_date";
+      
+      let editedStageIndex = -1;
+      if (syncDates) {
+        const editedType = prev.find(t => t.id === ticketId);
+        if (editedType) {
+          editedStageIndex = editedType.stages.findIndex(s => s.id === stageId);
+        }
+      }
+
+      return prev.map((t) => {
+        if (t.id === ticketId) {
+          // Zona original editada
+          return {
+            ...t,
+            stages: t.stages.map((s) => (s.id === stageId ? { ...s, [field]: value } : s))
+          }
+        } else {
+          // Otras zonas
+          if (syncDates && editedStageIndex !== -1 && t.stages[editedStageIndex]) {
+            const newStages = [...t.stages];
+            newStages[editedStageIndex] = { ...newStages[editedStageIndex], [field]: value };
+            return { ...t, stages: newStages };
+          }
+          return t;
+        }
+      })
+    })
   }
 
   const getStageBadge = (stage) => {

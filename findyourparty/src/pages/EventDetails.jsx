@@ -183,16 +183,20 @@ function EventDetails() {
             {/* MAPA */}
             <section className="space-y-6">
               <h3 className="text-2xl font-black uppercase tracking-tight">Mapa del Evento</h3>
-              <div className="h-[400px] bg-zinc-900 rounded-[2.5rem] border border-zinc-800 overflow-hidden relative group">
-                 {event.local_distribution_image ? (
-                   <img src={event.local_distribution_image} alt="Mapa del local" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                 ) : (
-                   <div className="flex flex-col items-center justify-center h-full opacity-30">
-                      <span className="text-5xl mb-4">🏛️</span>
-                      <p className="text-xs font-black uppercase tracking-[0.3em]">Plano no disponible</p>
-                   </div>
-                 )}
-              </div>
+                <div className="h-[400px] bg-zinc-900 rounded-[2.5rem] border border-zinc-800 overflow-hidden relative group">
+                   {event.local_distribution_image ? (
+                     <img src={event.local_distribution_image} alt="Mapa del local" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                   ) : (
+                     <div className="relative w-full h-full">
+                       <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop" alt="Mapa Genérico" className="w-full h-full object-cover opacity-30 grayscale group-hover:scale-105 transition-transform duration-700" />
+                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <span className="text-5xl mb-4 text-white drop-shadow-lg">📍</span>
+                          <p className="text-sm font-black text-white uppercase tracking-[0.2em] drop-shadow-md">Mapa de Ubicación</p>
+                          {event.maps && <p className="text-xs text-zinc-300 mt-2 font-bold drop-shadow-md">Toca el botón abajo para abrir Maps</p>}
+                       </div>
+                     </div>
+                   )}
+                </div>
               {event.maps && (
                 <div className="flex justify-center mt-4">
                   <a href={event.maps} target="_blank" rel="noreferrer" className="bg-zinc-900 border border-zinc-800 text-white px-6 py-3 rounded-2xl font-bold hover:bg-zinc-800 transition text-sm flex items-center gap-2">
