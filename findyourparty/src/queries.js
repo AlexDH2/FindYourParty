@@ -17,7 +17,7 @@ export async function fetchPublicEvents(page = 1) {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, title, slug, date, location, image, banner_position, banner_zoom, price, prices_json, publication_status, category, genre, whatsapp"
+      "id, title, slug, date, location, image, banner_position, banner_zoom, price, prices_json, publication_status, whatsapp, promo_active, promo_image_url, promo_expires_at"
     )
     .eq("publication_status", "published")
     .order("date", { ascending: true })
