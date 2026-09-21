@@ -44,10 +44,10 @@ function Navbar() {
           </a>
 
           <div className="hidden md:flex gap-10 text-sm uppercase tracking-widest text-zinc-300">
-            <a href="#eventos" className="hover:text-purple-400 transition font-medium">
+            <a href="/#eventos" className="hover:text-purple-400 transition font-medium">
               Eventos
             </a>
-            <a href="#contacto" className="hover:text-purple-400 transition font-medium">
+            <a href="/#contacto" className="hover:text-purple-400 transition font-medium">
               Contacto
             </a>
           </div>
@@ -68,10 +68,10 @@ function Navbar() {
         
         {isMenuOpen && (
           <div className="md:hidden mt-4 bg-black/90 backdrop-blur-xl border border-white/10 rounded-3xl p-6 flex flex-col gap-6 text-sm uppercase tracking-widest text-center">
-            <a href="#eventos" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
+            <a href="/#eventos" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
               Eventos
             </a>
-            <a href="#contacto" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
+            <a href="/#contacto" className="text-white hover:text-purple-400 transition font-medium" onClick={() => setIsMenuOpen(false)}>
               Contacto
             </a>
           </div>
