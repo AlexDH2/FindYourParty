@@ -60,37 +60,24 @@ export function EventProvider({ children }) {
   function invalidatePublicCache() {
     cacheService.clear()
     queryClient.invalidateQueries({ queryKey: ["public-events"] })
+    queryClient.invalidateQueries({ queryKey: ["public-event"] })
   }
 
   async function addEvent(newEvent) {
-    // newEvent.prices_json now directly contains the new conceptual structure (array of ticketTypes)
     const minPrice = getMinActivePrice(newEvent.prices_json, new Date());
 
     const eventToAdd = {
-      // Excluir propiedades que no son columnas de la DB y ser explícitos con las que sí lo son
-      title: newEvent.title,
-      location: newEvent.location,
-      date: newEvent.date,
-      featured: newEvent.featured,
-      image: newEvent.image,
-      maps: newEvent.maps,
-      whatsapp: newEvent.whatsapp,
-      description: newEvent.description,
-      local_distribution_image: newEvent.local_distribution_image,
-      opening_time: newEvent.opening_time,
-      dresscode: newEvent.dresscode,
-      min_age: newEvent.min_age,
-      organizer_id: newEvent.organizer_id === "" ? null : newEvent.organizer_id, // Normalize "" to null
-      slug: slugify(newEvent.title), // Generar slug
-      price: minPrice, // Establecer precio mínimo (este sí es una columna)
-      publication_status: newEvent.publication_status || "draft", // Default a draft
+      ...newEvent,
+      organizer_id: newEvent.organizer_id === "" ? null : newEvent.organizer_id,
+      slug: slugify(newEvent.title),
+      price: minPrice,
+      publication_status: newEvent.publication_status || "draft",
+      prices_json: JSON.stringify(newEvent.prices_json || []),
+      ...(newEvent.video_url?.trim() ? { video_url: newEvent.video_url.trim() } : {})
     };
 
     try {
-      const created = await eventService.addEvent({
-        ...eventToAdd, // Pass all new fields
-        prices_json: JSON.stringify(eventToAdd.prices_json) // Asegurar que se guarda como string JSON
-      })
+      const created = await eventService.addEvent(eventToAdd)
 
       if (created) {
         setEvents((prev) => [created, ...prev])
@@ -112,28 +99,26 @@ export function EventProvider({ children }) {
   }
 
   async function updateEvent(updatedEvent) {
-    // updatedEvent.prices_json now directly contains the new conceptual structure (array of ticketTypes)
     const minPrice = getMinActivePrice(updatedEvent.prices_json, new Date());
-    
-    // Desestructurar updatedEvent para excluir lifecycleStatus y otras propiedades no de DB
-    // y construir un objeto con solo las columnas de la base de datos.
     const { lifecycleStatus, ...dbFields } = updatedEvent;
 
     const eventToUpdate = {
       ...dbFields,
-      // Asegurarse de que prices_json se guarde como string JSON
-      prices_json: JSON.stringify(updatedEvent.prices_json),
-      // Regenerar slug por si el título cambió
-      slug: slugify(updatedEvent.title), // Regenerar slug por si el título cambió
-      price: minPrice, // Actualizar precio mínimo
+      prices_json: JSON.stringify(updatedEvent.prices_json || []),
+      slug: slugify(updatedEvent.title),
+      price: minPrice,
       publication_status: updatedEvent.publication_status || "draft",
-      // Asegurarse de que organizer_id se envíe correctamente
       organizer_id: updatedEvent.organizer_id || null,
-      // Incluir los nuevos campos
       dresscode: updatedEvent.dresscode || null,
       min_age: updatedEvent.min_age || null,
       opening_time: updatedEvent.opening_time || null,
     };
+
+    if (updatedEvent.video_url?.trim()) {
+      eventToUpdate.video_url = updatedEvent.video_url.trim();
+    } else {
+      delete eventToUpdate.video_url;
+    }
 
     try {
       const updated = await eventService.updateEvent(eventToUpdate) // Usar eventToUpdate

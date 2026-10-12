@@ -52,5 +52,18 @@ export const organizerService = {
     }
   },
 
-  // Puedes añadir funciones para eliminar organizadores, obtener por slug, etc.
+  async createOrganizer(organizerData) {
+    return this.addOrganizer(organizerData);
+  },
+
+  async deleteOrganizer(id) {
+    try {
+      const { error } = await supabase.from('organizers').delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error("Error deleting organizer:", error);
+      throw error;
+    }
+  }
 };

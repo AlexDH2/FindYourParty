@@ -1,14 +1,23 @@
 import { useState } from "react"
+import { formatReservationCode } from "../../utils/whatsapp"
 
 export default function AdminReservationsView({ reservations = [], history = [], refetchHistory }) {
   const [view, setView] = useState("general")
   const [filterText, setFilterText] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  const [copiedId, setCopiedId] = useState(null)
 
-  let filteredReservations = reservations.filter((r) =>
-    (r?.events?.title || "").toLowerCase().includes(filterText.toLowerCase())
-  )
+  let filteredReservations = reservations.filter((r) => {
+    const q = filterText.toLowerCase().trim()
+    if (!q) return true
+    const title = (r?.events?.title || "").toLowerCase()
+    const id = (r?.id || "").toLowerCase()
+    const code = formatReservationCode(r?.id).toLowerCase()
+    const type = (r?.ticket_type || "").toLowerCase()
+    const stage = (r?.ticket_stage || "").toLowerCase()
+    return title.includes(q) || id.includes(q) || code.includes(q) || type.includes(q) || stage.includes(q)
+  })
 
   if (startDate) {
     filteredReservations = filteredReservations.filter(r => !r.created_at || new Date(r.created_at) >= new Date(startDate))
@@ -91,10 +100,10 @@ export default function AdminReservationsView({ reservations = [], history = [],
           />
           <input
             type="text"
-            placeholder="🔍 Filtrar por evento..."
+            placeholder="🔍 Filtrar por código, evento, zona o fase..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none w-40"
+            className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none w-52 sm:w-64"
           />
           <button
             onClick={handleExportCSV}
@@ -124,26 +133,53 @@ export default function AdminReservationsView({ reservations = [], history = [],
           filteredReservations.length === 0 ? (
             <p className="text-zinc-600 text-xs text-center py-12">No hay reservas entrantes registradas.</p>
           ) : (
-            filteredReservations.map((res) => (
-              <div key={res?.id} className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-850/80 flex justify-between items-center hover:border-purple-500/40 transition-all">
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-sm text-zinc-100">{res?.events?.title || "Evento Base"}</h4>
-                  <p className="text-[10px] font-mono text-zinc-500 uppercase">
-                    ID DE RESERVA: #{String(res?.id).substring(0, 10)} • {res?.ticket_type || "Entrada"} {res?.ticket_stage ? `(${res?.ticket_stage})` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 text-right">
-                  <div>
-                    <span className="bg-zinc-950 border border-purple-500/30 text-lime-400 font-mono px-3 py-1.5 rounded-xl text-xs font-black block text-center mb-1">
-                      x{res?.quantity || 0} ENTRADAS
+            filteredReservations.map((res) => {
+              const resCode = formatReservationCode(res?.id)
+              const isCopied = copiedId === res?.id
+              const isFree = Number(res?.unit_price) === 0
+              const dateStr = res?.created_at ? new Date(res.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ""
+
+              return (
+                <div key={res?.id} className="bg-zinc-900/60 p-4 sm:p-5 rounded-2xl border border-zinc-850 hover:border-purple-500/50 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-extrabold text-sm text-zinc-100 truncate">{res?.events?.title || "Evento Base"}</h4>
+                      {dateStr && <span className="text-[10px] text-zinc-500 font-mono">({dateStr})</span>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(resCode)
+                          setCopiedId(res?.id)
+                          setTimeout(() => setCopiedId(null), 2000)
+                        }}
+                        className="bg-zinc-950 border border-purple-500/30 hover:border-purple-400 text-purple-300 font-mono text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all active:scale-95"
+                        title="Copiar código de reserva"
+                      >
+                        <span>{resCode}</span>
+                        <span className="text-[9px] text-zinc-400">{isCopied ? "✓ Copiado" : "📋"}</span>
+                      </button>
+                      <span className="text-[10px] font-bold text-zinc-300 bg-zinc-800/80 px-2 py-0.5 rounded-md">
+                        {res?.ticket_type || "Entrada"}
+                      </span>
+                      {res?.ticket_stage && (
+                        <span className="text-[10px] font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-md">
+                          ⚡ {res?.ticket_stage}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center sm:flex-col sm:items-end justify-between gap-1 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/50">
+                    <span className="bg-zinc-950 border border-lime-500/30 text-lime-400 font-mono px-3 py-1 rounded-xl text-xs font-black">
+                      x{res?.quantity || 0} {Number(res?.quantity) === 1 ? "ENTRADA" : "ENTRADAS"}
                     </span>
-                    <span className="text-[10px] text-zinc-400 font-bold block text-center">
-                      Total: S/. {(Number(res?.quantity) || 0) * (Number(res?.unit_price) || 0)}
+                    <span className="text-xs text-zinc-300 font-mono font-bold">
+                      {isFree ? "Gratis (Pase Libre)" : `Total: S/ ${((Number(res?.quantity) || 0) * (Number(res?.unit_price) || 0)).toFixed(2)}`}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )
         )}
 

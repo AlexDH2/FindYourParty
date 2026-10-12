@@ -25,3 +25,21 @@ export function parseYYYYMMDDToLocalDate(dateString) {
   // Create date in local timezone at midnight (00:00:00)
   return new Date(year, month - 1, day, 0, 0, 0, 0);
 }
+
+/**
+ * Adds a specified number of days to a YYYY-MM-DD date string.
+ * Uses local calendar date to prevent UTC timezone shifts.
+ * @param {string} dateString - "YYYY-MM-DD"
+ * @param {number} [days=1]
+ * @returns {string} "YYYY-MM-DD"
+ */
+export function addDaysToYYYYMMDD(dateString, days = 1) {
+  if (!dateString) return "";
+  const d = parseYYYYMMDDToLocalDate(dateString);
+  if (!d) return "";
+  d.setDate(d.getDate() + days);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

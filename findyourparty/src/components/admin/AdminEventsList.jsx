@@ -46,7 +46,7 @@ export default function AdminEventsList({ events, search, setSearch, onEdit, onD
 
               <div className="flex gap-1.5 flex-shrink-0">
                 <a
-                  href={`/evento/${event.slug}?preview=true`}
+                  href={`/evento/${event.slug || event.id}?preview=true`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center justify-center"

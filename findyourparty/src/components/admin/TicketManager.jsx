@@ -1,6 +1,6 @@
 import { slugify } from "../../utils/slugify"
 import { getActiveTicketStageAndPrice } from "../../utils/priceUtils"
-import { parseYYYYMMDDToLocalDate } from "../../utils/dateUtils"
+import { parseYYYYMMDDToLocalDate, addDaysToYYYYMMDD } from "../../utils/dateUtils"
 import {
   getTicketMatrixPreset,
   getTablesPreset,
@@ -34,8 +34,13 @@ export default function TicketManager({
   }
 
   const handleFeatures = (id, str) => {
-    const features = str.split(",").map((f) => f.trim()).filter(Boolean)
-    setTicketTypes(ticketTypes.map((t) => (t.id === id ? { ...t, features } : t)))
+    const features = str
+      .split(/[\n,]/)
+      .map((f) => f.trim())
+      .filter(Boolean)
+    setTicketTypes((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, features, features_raw: str } : t))
+    )
   }
 
   const addStage = (ticketId) => {
@@ -83,22 +88,26 @@ export default function TicketManager({
         }
       }
 
+      // Si se definió una fecha de fin válida (YYYY-MM-DD), calcular el día siguiente para la etapa sucesiva (+1 día)
+      const nextDay = (field === "end_date" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+        ? addDaysToYYYYMMDD(value, 1)
+        : null;
+
       return prev.map((t) => {
-        if (t.id === ticketId) {
-          // Zona original editada
-          return {
-            ...t,
-            stages: t.stages.map((s) => (s.id === stageId ? { ...s, [field]: value } : s))
+        const isTargetTicket = t.id === ticketId;
+        const newStages = t.stages.map((s, idx) => {
+          // Etapa editada directamente
+          if ((isTargetTicket && s.id === stageId) || (!isTargetTicket && syncDates && idx === editedStageIndex)) {
+            return { ...s, [field]: value };
           }
-        } else {
-          // Otras zonas
-          if (syncDates && editedStageIndex !== -1 && t.stages[editedStageIndex]) {
-            const newStages = [...t.stages];
-            newStages[editedStageIndex] = { ...newStages[editedStageIndex], [field]: value };
-            return { ...t, stages: newStages };
+          // Etapa siguiente consecutiva: si se cambió end_date, auto-iniciar al día siguiente (+1 día)
+          if (nextDay && idx === editedStageIndex + 1) {
+            return { ...s, start_date: nextDay };
           }
-          return t;
-        }
+          return s;
+        });
+
+        return { ...t, stages: newStages };
       })
     })
   }
@@ -202,15 +211,18 @@ export default function TicketManager({
                 </button>
               </div>
 
-              {/* Beneficios incluidos */}
+              {/* Beneficios incluidos (Multilínea: uno debajo del otro o por comas) */}
               <div>
-                <label className="text-[10px] font-black text-zinc-500 uppercase block mb-1">Beneficios / Inclusiones:</label>
-                <input
-                  type="text"
-                  placeholder="Separar por coma (ej: Piscina, Barra privada, Show en vivo)"
-                  value={ticket.features?.join(", ") ?? ""}
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase block">Beneficios / Inclusiones:</label>
+                  <span className="text-[10px] text-zinc-500 font-bold">Un beneficio por renglón (Enter) o separados por coma</span>
+                </div>
+                <textarea
+                  rows={3}
+                  placeholder={"Acceso General\nPiscina\nGlitter Bar & Tatuajes\nTúnel del Terror"}
+                  value={ticket.features_raw !== undefined ? ticket.features_raw : (ticket.features?.join("\n") ?? "")}
                   onChange={(e) => handleFeatures(ticket.id, e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-300 outline-none focus:border-zinc-700"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-200 outline-none focus:border-purple-500 font-sans leading-relaxed resize-y"
                 />
               </div>
 

@@ -8,25 +8,28 @@ import { formatToYYYYMMDD } from "../utils/dateUtils"
 import { parseNewPricesJsonString } from "../utils/priceUtils"
 import { VENUE_PRESETS } from "../constants/eventPresets"
 import { useAdminProfile } from "../hooks/useAdminProfile"
+import { getYouTubeEmbedUrl } from "../utils/videoUtils"
 
 // Componentes modulares
 import FlyerGalleryUploader from "../components/admin/FlyerGalleryUploader"
 import TicketManager from "../components/admin/TicketManager"
 import AdminEventsList from "../components/admin/AdminEventsList"
 import AdminReservations from "../components/admin/AdminReservations"
-import BannerCropperModal from "../components/admin/BannerCropperModal"
 
 // Nuevas Vistas Modulares
 import AdminDashboardView from "../components/admin/AdminDashboardView"
 import AdminOrganizersView from "../components/admin/AdminOrganizersView"
 import AdminReservationsView from "../components/admin/AdminReservationsView"
+import AdminTeamView from "../components/admin/AdminTeamView"
+import { storageService } from "../services/storageService"
+import { compressImage } from "../utils/imageCompression"
 
 export default function Admin() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const currentTab = searchParams.get("tab") || "eventos"
 
-  const { canDeleteEvents, isSuperadmin } = useAdminProfile()
+  const { profile, canDeleteEvents, isSuperadmin } = useAdminProfile()
 
   const { events = [], reservations = [], addEvent, deleteEvent, updateEvent } = useContext(EventContext) || {}
   const { history, refetchHistory } = useReservationsHistory()
@@ -39,7 +42,6 @@ export default function Admin() {
   const [showAdminModal, setShowAdminModal] = useState(false)
   const [newAdminEmail, setNewAdminEmail] = useState("")
   const [newAdminPassword, setNewAdminPassword] = useState("")
-  const [showCropper, setShowCropper] = useState(false)
 
   const [ticketTypes, setTicketTypes] = useState([])
   const [galleryImages, setGalleryImages] = useState([])
@@ -64,7 +66,8 @@ export default function Admin() {
     min_age: "+18",
     promo_active: false,
     promo_image_url: "",
-    promo_expires_at: ""
+    promo_expires_at: "",
+    video_url: ""
   }
   const [formData, setFormData] = useState(initialFormState)
 
@@ -113,26 +116,39 @@ export default function Admin() {
       min_age: event.min_age || "+18",
       promo_active: Boolean(event.promo_active),
       promo_image_url: event.promo_image_url || "",
-      promo_expires_at: event.promo_expires_at ? new Date(event.promo_expires_at).toISOString().slice(0, 16) : ""
+      promo_expires_at: event.promo_expires_at ? new Date(event.promo_expires_at).toISOString().slice(0, 16) : "",
+      video_url: event.video_url || ""
     })
 
     setTicketTypes(parseNewPricesJsonString(event.prices_json))
     if (Array.isArray(event.gallery_images) && event.gallery_images.length > 0) {
-      setGalleryImages(event.gallery_images)
+      const mapped = event.gallery_images.map((img, idx) => {
+        const isPortada = img.label === "Portada" || (!event.gallery_images.some(g => g.label === "Portada") && idx === 0)
+        return {
+          ...img,
+          position: img.position || (isPortada ? event.banner_position : undefined) || "50% 20%",
+          zoom: Number(img.zoom || (isPortada ? event.banner_zoom : undefined)) || 1
+        }
+      })
+      setGalleryImages(mapped)
     } else if (event.image) {
-      setGalleryImages([{ url: event.image, label: "Portada" }])
+      setGalleryImages([{
+        url: event.image,
+        label: "Portada",
+        position: event.banner_position || "50% 20%",
+        zoom: Number(event.banner_zoom) || 1
+      }])
     } else {
       setGalleryImages([])
     }
 
-    setSearchParams({ tab: "eventos" })
+    setSearchParams({ tab: "nuevo-evento" })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   function handleDuplicate(event) {
     if (!event) return
     setEditingId(null)
-    setSearchParams({ tab: "nuevo-evento" })
     setFormData({
       title: `Copia de ${event.title || ""}`,
       location: event.location || "",
@@ -149,17 +165,31 @@ export default function Admin() {
       publication_status: "draft",
       opening_time: event.opening_time || "10:00 PM",
       dresscode: event.dresscode || "Temático / Disfraces",
-      min_age: event.min_age || "+18"
+      min_age: event.min_age || "+18",
+      video_url: event.video_url || ""
     })
     setTicketTypes(parseNewPricesJsonString(event.prices_json))
     if (Array.isArray(event.gallery_images) && event.gallery_images.length > 0) {
-      setGalleryImages(event.gallery_images)
+      const mapped = event.gallery_images.map((img, idx) => {
+        const isPortada = img.label === "Portada" || (!event.gallery_images.some(g => g.label === "Portada") && idx === 0)
+        return {
+          ...img,
+          position: img.position || (isPortada ? event.banner_position : undefined) || "50% 20%",
+          zoom: Number(img.zoom || (isPortada ? event.banner_zoom : undefined)) || 1
+        }
+      })
+      setGalleryImages(mapped)
     } else if (event.image) {
-      setGalleryImages([{ url: event.image, label: "Portada" }])
+      setGalleryImages([{
+        url: event.image,
+        label: "Portada",
+        position: event.banner_position || "50% 20%",
+        zoom: Number(event.banner_zoom) || 1
+      }])
     } else {
       setGalleryImages([])
     }
-    setSearchParams({ tab: "eventos" })
+    setSearchParams({ tab: "nuevo-evento" })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -168,8 +198,6 @@ export default function Admin() {
     if (!file) return;
     try {
       setIsUploadingPromo(true);
-      const { compressImage } = await import("../utils/imageCompression");
-      const { storageService } = await import("../services/storageService");
       const compressed = await compressImage(file, { isMap: false });
       const ext = compressed.name.split(".").pop() || "webp";
       const fileName = `promo-${Date.now()}.${ext}`;
@@ -189,19 +217,24 @@ export default function Admin() {
     e.preventDefault()
     if (ticketTypes.length === 0) return alert('Debe agregar al menos un ticket')
     if (galleryImages.length === 0) return alert('Debe subir al menos una imagen')
+    if (galleryImages.some(img => img.isUploading || img.url?.startsWith("blob:"))) {
+      return alert('Aún se están subiendo imágenes en segundo plano. Espera unos segundos a que finalicen.')
+    }
     if (!formData.whatsapp) return alert('El WhatsApp es obligatorio')
     
     setIsSubmitting(true)
     try {
       const portadaImg = galleryImages.find(i => i.label === "Portada") || galleryImages[0]
+      const bannerPosition = portadaImg?.position || formData.banner_position || "50% 20%"
+      const bannerZoom = Number(portadaImg?.zoom || formData.banner_zoom) || 1
       const payload = {
         title: formData.title.trim(),
         location: formData.location.trim(),
         date: formData.date,
         featured: Boolean(formData.featured),
         image: portadaImg?.url || formData.image || "",
-        banner_position: formData.banner_position || "50% 20%",
-        banner_zoom: Number(formData.banner_zoom) || 1,
+        banner_position: bannerPosition,
+        banner_zoom: bannerZoom,
         maps: formData.maps ? formData.maps.trim() : null,
         whatsapp: formData.whatsapp ? formData.whatsapp.trim() : null,
         description: formData.description ? formData.description.trim() : "",
@@ -215,7 +248,13 @@ export default function Admin() {
         promo_image_url: formData.promo_image_url || null,
         promo_expires_at: formData.promo_expires_at ? new Date(formData.promo_expires_at).toISOString() : null,
         prices_json: ticketTypes,
-        gallery_images: galleryImages
+        gallery_images: galleryImages.map(img => {
+          if (img === portadaImg) {
+            return { ...img, position: bannerPosition, zoom: bannerZoom }
+          }
+          return img
+        }),
+        ...(formData.video_url?.trim() ? { video_url: formData.video_url.trim() } : {})
       }
 
       if (editingId) {
@@ -228,6 +267,7 @@ export default function Admin() {
       setFormData(initialFormState)
       setTicketTypes([])
       setGalleryImages([])
+      setSearchParams({ tab: "eventos" })
       alert("¡Evento guardado con éxito!")
     } catch (err) {
       console.error(err)
@@ -250,7 +290,7 @@ export default function Admin() {
     }
   }
 
-  const currentCoverImage = galleryImages.find(i => i.label === "Portada")?.url || galleryImages[0]?.url || formData.image
+
 
   return (
     <div className="space-y-6">
@@ -276,6 +316,11 @@ export default function Admin() {
       {/* 3. VISTA ORGANIZADORES */}
       {currentTab === "organizadores" && (
         <AdminOrganizersView />
+      )}
+
+      {/* 4. VISTA EQUIPO */}
+      {currentTab === "equipo" && (
+        <AdminTeamView currentProfile={profile} />
       )}
 
       {/* 4. VISTA EVENTOS (CREADOR Y CARTELERAS) */}
@@ -321,17 +366,7 @@ export default function Admin() {
             </form>
           )}
 
-          {showCropper && currentCoverImage && (
-            <BannerCropperModal
-              imageUrl={currentCoverImage}
-              initialPosition={formData.banner_position}
-              initialZoom={formData.banner_zoom}
-              onSave={({ position, zoom }) => {
-                setFormData(prev => ({ ...prev, banner_position: position, banner_zoom: zoom }))
-              }}
-              onClose={() => setShowCropper(false)}
-            />
-          )}
+
 
           
           <div className="max-w-4xl mx-auto space-y-6">
@@ -349,7 +384,17 @@ export default function Admin() {
                     {editingId ? <span className="text-amber-400">📝 EDITANDO EVENTO</span> : <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 bg-clip-text text-transparent">✨ PUBLICAR NUEVO EVENTO</span>}
                   </h2>
                   {editingId && (
-                    <button type="button" onClick={() => { setEditingId(null); setFormData(initialFormState); setTicketTypes([]); setGalleryImages([]); }} className="text-xs text-zinc-500 hover:text-white uppercase font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setFormData(initialFormState);
+                        setTicketTypes([]);
+                        setGalleryImages([]);
+                        setSearchParams({ tab: "eventos" });
+                      }}
+                      className="text-xs text-zinc-500 hover:text-white uppercase font-bold"
+                    >
                       Cancelar
                     </button>
                   )}
@@ -392,20 +437,46 @@ export default function Admin() {
                 </details>
 
                 <details className="group bg-zinc-900/50 p-4 rounded-2xl border border-zinc-850">
-                  <summary className="text-sm font-black uppercase text-white cursor-pointer select-none">Imágenes</summary>
+                  <summary className="text-sm font-black uppercase text-white cursor-pointer select-none">Multimedia (Flyers y Video)</summary>
                   <div className="mt-4 space-y-4">
                     <FlyerGalleryUploader galleryImages={galleryImages} setGalleryImages={setGalleryImages} setFormData={setFormData} />
-                    {currentCoverImage && (
-                      <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-xs font-black uppercase text-pink-400">✂️ Encuadre de Portada (WhatsApp)</p>
-                          <p className="text-[10px] text-zinc-500">Posición: {formData.banner_position} | Zoom: {formData.banner_zoom}x</p>
+
+                    {/* VIDEO DE YOUTUBE */}
+                    <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl space-y-3">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-black uppercase text-red-400 flex items-center gap-1.5">
+                            <span>▶️</span> Video de YouTube (Trailer / Reel)
+                          </label>
+                          {formData.video_url && getYouTubeEmbedUrl(formData.video_url) && (
+                            <span className="text-[10px] bg-red-500/20 text-red-300 font-bold px-2 py-0.5 rounded-full border border-red-500/30">
+                              ✓ Enlace válido
+                            </span>
+                          )}
                         </div>
-                        <button type="button" onClick={() => setShowCropper(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black text-xs uppercase px-4 py-2.5 rounded-xl">
-                          Ajustar Encuadre
-                        </button>
+                        <input
+                          type="url"
+                          name="video_url"
+                          value={formData.video_url || ""}
+                          onChange={handleChange}
+                          placeholder="https://www.youtube.com/watch?v=... o https://youtu.be/..."
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-white outline-none focus:border-red-500"
+                        />
                       </div>
-                    )}
+
+                      {/* Vista previa en vivo del video */}
+                      {formData.video_url && getYouTubeEmbedUrl(formData.video_url) && (
+                        <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-zinc-800 bg-black">
+                          <iframe
+                            src={getYouTubeEmbedUrl(formData.video_url)}
+                            title="Vista previa del trailer"
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </details>
 
@@ -508,8 +579,18 @@ export default function Admin() {
                   </div>
                 </details>
 
-                <button type="submit" disabled={isSubmitting} className="w-full font-black uppercase tracking-widest p-4 rounded-2xl text-sm bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 text-black">
-                  {isSubmitting ? "Guardando..." : editingId ? "💾 Actualizar Evento" : "🚀 Publicar Evento Line-Up"}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || galleryImages.some(img => img.isUploading || img.url?.startsWith("blob:"))}
+                  className="w-full font-black uppercase tracking-widest p-4 rounded-2xl text-sm bg-gradient-to-r from-pink-500 via-purple-500 to-lime-400 text-black disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {isSubmitting
+                    ? "Guardando..."
+                    : galleryImages.some(img => img.isUploading || img.url?.startsWith("blob:"))
+                    ? "⏳ Subiendo imágenes en segundo plano..."
+                    : editingId
+                    ? "💾 Actualizar Evento"
+                    : "🚀 Publicar Evento Line-Up"}
                 </button>
               </form>
         </div>

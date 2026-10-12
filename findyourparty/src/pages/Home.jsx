@@ -2,7 +2,6 @@ import { useContext, useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import EventCard from "../components/EventCard"
 import Navbar from "../components/Navbar"
-import { getMinActivePrice, parseNewPricesJsonString } from "../utils/priceUtils"
 import { usePublicEvents } from "../queries"
 
 export default function Home() {
@@ -45,16 +44,6 @@ export default function Home() {
     gridClasses += " grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
   }
 
-  const getMinPriceDisplay = (event) => {
-    if (!event) return "0"
-    try {
-      const parsed = parseNewPricesJsonString(event.prices_json)
-      const min = getMinActivePrice(parsed)
-      return min || event.price || "0"
-    } catch {
-      return event.price || "0"
-    }
-  }
 
   const formatCardDate = (dateStr) => {
     if (!dateStr) return { day: "--", month: "PRÓX", weekday: "" }
@@ -118,9 +107,6 @@ export default function Home() {
                   </p>
                 );
               })()}
-              <p className="text-cyan-400 font-black text-3xl mt-4 tracking-tight">
-                Desde S/{getMinPriceDisplay(featuredEvent)}
-              </p>
             </div>
           ) : (
             <p className="text-zinc-400 text-lg md:text-xl max-w-xl mt-6 font-medium">

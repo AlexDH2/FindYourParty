@@ -18,10 +18,19 @@ export const eventService = {
 
   async addEvent(eventData) {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('events')
         .insert([eventData])
-        .select(); // Retorna el registro insertado
+        .select();
+
+      // Si falla porque no existe la columna video_url en Supabase, reintentar sin video_url
+      if (error && error.code === 'PGRST204' && eventData.video_url !== undefined) {
+        console.warn("Columna video_url no existe en Supabase aún. Guardando sin video_url...");
+        const { video_url, ...dataWithoutVideo } = eventData;
+        const retry = await supabase.from('events').insert([dataWithoutVideo]).select();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
       return data[0];
@@ -34,11 +43,24 @@ export const eventService = {
   async updateEvent(eventData) {
     try {
       const { id, ...updateFields } = eventData;
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('events')
         .update(updateFields)
         .eq('id', id)
-        .select(); // Retorna el registro actualizado
+        .select();
+
+      // Si falla porque no existe la columna video_url en Supabase, reintentar sin video_url
+      if (error && error.code === 'PGRST204' && updateFields.video_url !== undefined) {
+        console.warn("Columna video_url no existe en Supabase aún. Guardando sin video_url...");
+        const { video_url, ...fieldsWithoutVideo } = updateFields;
+        const retry = await supabase
+          .from('events')
+          .update(fieldsWithoutVideo)
+          .eq('id', id)
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw error;
       return data[0];
@@ -59,13 +81,9 @@ export const eventService = {
     }
   },
 
-  // Esta función es un placeholder para la lógica de purga,
-  // que podría ser más compleja o manejarse con un trigger de Supabase.
+  // Placeholder para la lógica de purga
   async purgeDeletedEvents({ eventsToDelete }) {
     console.log("Purging deleted events (placeholder):", eventsToDelete);
-    // En un escenario real, aquí se ejecutaría la lógica para eliminar
-    // permanentemente los eventos marcados como "deleted" si es necesario.
-    // Por ahora, solo se registra.
     return true;
   }
 };
